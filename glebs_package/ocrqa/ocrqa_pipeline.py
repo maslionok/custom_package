@@ -10,6 +10,9 @@ from typing import Optional
 from huggingface_hub import hf_hub_download
 from pybloomfilter import BloomFilter
 
+from glebs_package.langident.langident_pipeline import FloretPipeline
+
+
 
 
 def get_bloomfilter(model_id: str, filename: str):
@@ -21,8 +24,11 @@ class OCRPipeline:
     def __call__(self, text, language=None):
         self.language = language
         if self.language == None:
-            exec(open(hf_hub_download("Maslionok/sudo_pipelines", "floret_language_recognition.py")).read())
-            self.language = floret_model(text)
+            # exec(open(hf_hub_download("Maslionok/sudo_pipelines", "floret_language_recognition.py")).read())
+
+            lang_model = FloretPipeline()
+
+            self.language = lang_model(text)
 
         if self.language not in self.SUPPORTED_LANGUAGES:
           raise ValueError(f"Unsupported language: {self.language}")
@@ -30,8 +36,7 @@ class OCRPipeline:
         bf = get_bloomfilter("impresso-project/OCR-quality-assessment-unigram", f"ocrqa-wp_v1.0.6-de.bloom")
 
         output = self.filter_text(text, bf)
-  
-    
+
         return output
     
     SUPPORTED_LANGUAGES = {"fr", "de"}
