@@ -4,12 +4,12 @@
 
 ### Install the Required Packages
 ```sh
-pip install setuptools wheel twine
+pip install build
 ```
 
 ### Build the Package
 ```sh
-python setup.py sdist bdist_wheel
+python -m build
 ```
 
 ### Upload the Package
