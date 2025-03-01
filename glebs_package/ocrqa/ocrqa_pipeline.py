@@ -10,36 +10,44 @@ from typing import Optional
 from huggingface_hub import hf_hub_download
 from pybloomfilter import BloomFilter
 
-from glebs_package.langident.langident_pipeline import FloretPipeline
+from glebs_package.langident.langident_pipeline import LangIdentPipeline
 
 
 
 
 def get_bloomfilter(model_id: str, filename: str):
         return BloomFilter.open(hf_hub_download(repo_id=model_id, filename=filename))
-class OCRPipeline:   
+
+class OCRQAPipeline:   
     def __init__(self):
         pass
 
-    def __call__(self, text, language=None):
+    def __call__(self, text, language = None, version = "1.0.6", diagnostics = False):
         self.language = language
+        self.version = version
+        self.diagnostics = diagnostics
+        
         if self.language == None:
             # exec(open(hf_hub_download("Maslionok/sudo_pipelines", "floret_language_recognition.py")).read())
 
-            lang_model = FloretPipeline()
+            lang_model = LangIdentPipeline()
 
             self.language = lang_model(text)
 
         if self.language not in self.SUPPORTED_LANGUAGES:
           raise ValueError(f"Unsupported language: {self.language}")
         
-        bf = get_bloomfilter("impresso-project/OCR-quality-assessment-unigram", f"ocrqa-wp_v1.0.6-de.bloom")
+        bf = get_bloomfilter("impresso-project/OCR-quality-assessment-unigram", f"ocrqa-wp_v{self.version}-{self.language}.bloom")
 
         output = self.filter_text(text, bf)
 
         return output
     
-    SUPPORTED_LANGUAGES = {"fr", "de"}
+    # Add all supported languages here
+    SUPPORTED_LANGUAGES = {
+        "fr", 
+        "de"
+    }
 
     
     # Define normalization table
@@ -83,10 +91,11 @@ class OCRPipeline:
 
         # Check tokens against the bloom filter
         for token in tokens:
-            if token in bloom_filter:
-                print(f"'{token}' is in the bloom filter.")
-            else:
-                print(f"'{token}' is NOT in the bloom filter.")
+            if self.diagnostics:
+                if token in bloom_filter:
+                    print(f"'{token}' is in the bloom filter.")
+                else:
+                    print(f"'{token}' is NOT in the bloom filter.")
 
 
     def filter_text(self, DE_TEXT: str, bloom_filter: BloomFilter):
@@ -101,10 +110,12 @@ class OCRPipeline:
         # Check tokens against the bloom filter
         for token in tokens:
             if token in bloom_filter:
-                print(f"'{token}' is in the bloom filter.")
+                if self.diagnostics:
+                    print(f"'{token}' is in the bloom filter.")
                 knowns.add(token)
             else:
-                print(f"'{token}' is NOT in the bloom filter.")
+                if self.diagnostics:
+                    print(f"'{token}' is NOT in the bloom filter.")
                 unknowns.add(token)
         result = result = {"knowns": knowns, "unknowns": unknowns}
 

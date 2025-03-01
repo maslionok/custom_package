@@ -1,1 +1,1 @@
-from .langident_pipeline import FloretPipeline
+from .langident_pipeline import LangIdentPipeline

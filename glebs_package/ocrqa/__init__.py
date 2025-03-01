@@ -1,1 +1,1 @@
-from .ocrqa_pipeline import OCRPipeline
+from .ocrqa_pipeline import OCRQAPipeline

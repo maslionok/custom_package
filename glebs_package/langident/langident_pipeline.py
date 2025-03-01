@@ -1,8 +1,9 @@
 from huggingface_hub import hf_hub_download
 import floret
 
-class FloretPipeline:   
+class LangIdentPipeline:   
     def __init__(self, model_name="floret_model.bin", repo_id="Maslionok/sudo_pipelines", revision="main"):
+        # you can specify model_name and repo_id
         model_path = hf_hub_download(repo_id=repo_id, filename=model_name, revision=revision)
         self.model = floret.load_model(model_path)
 

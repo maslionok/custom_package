@@ -24,8 +24,6 @@ twine upload dist/*
 ### Installation
 ```sh
 pip install glebs_package
-pip install cython pybloomfiltermmap3 huggingface_hub
-pip install floret
 ```
 
 ### Using the Language Detection Pipeline
@@ -34,7 +32,10 @@ from glebs_package.langident import FloretPipeline
 
 lang_pipeline = FloretPipeline()
 lang_pipeline.predict("Ich komme aus Deutschland")
+
+lang_pipeline.predict("Ich komme aus Deutschland", model_name="floret_model.bin", repo_id="Maslionoksudo_pipelines", revision="main")
 ```
+Please pay attention that currently the model is in a random repository and it will be later moved to the official repository.
 
 ### Using the QA Score Model
 ```python
@@ -49,3 +50,12 @@ ocr_pipeline.predict("Ich komme aus Deutschland")
 ocr_pipeline.predict("Ich komme aus Deutschland", "de")
 ```
 
+#### Specifying version for bloom
+```python
+ocr_pipeline.predict("Ich komme aus Deutschland", "de", version = "1.0.6")
+```
+
+#### Specifying diagnostics
+```python
+ocr_pipeline.predict("Ich komme aus Deutschland", "de", version = "1.0.6", diagnostics = True)
+```
