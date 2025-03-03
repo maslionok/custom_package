@@ -110,19 +110,25 @@ class OCRQAPipeline:
         # Check tokens against the bloom filter
         for token in tokens:
             if token in bloom_filter:
-                if self.diagnostics:
-                    print(f"'{token}' is in the bloom filter.")
+                # if self.diagnostics:
+                #     print(f"'{token}' is in the bloom filter.")
                 knowns.add(token)
             else:
-                if self.diagnostics:
-                    print(f"'{token}' is NOT in the bloom filter.")
+                # if self.diagnostics:
+                #     print(f"'{token}' is NOT in the bloom filter.")
                 unknowns.add(token)
-        result = result = {"knowns": knowns, "unknowns": unknowns}
+        
+        # result = {"knowns": knowns, "unknowns": unknowns}
+
+        bloom_filter = f"ocrqa-wp_v{self.version}-{self.language}.bloom"
 
         # Compute the score
         score = len(knowns) / (len(knowns) + len(unknowns)) if (len(knowns) + len(unknowns)) > 0 else 0
-        score = float(f"{score:.3g}")
+        score = round(score, 1)
         
         output = ({"language": self.language, "score": score})
+        
+        if self.diagnostics:
+            output = ({"language": self.language, "score": score, "diagnostics": {"known_tokens": len(knowns), "unknowns_tokens": len(unknowns), "bloom_filter": bloom_filter}})
 
         return output
