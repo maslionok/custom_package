@@ -1,6 +1,6 @@
 Metadata-Version: 2.2
 Name: glebs_package
-Version: 1.1.6
+Version: 1.1.7
 Summary: A custom package for language identification subpackage and ocr QA score calculation subpackage
 Author-email: Glebs Vinarskis <gleb.vinarskis@gmail.com>
 Requires-Python: >=3.7

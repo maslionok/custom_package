@@ -7,7 +7,7 @@ from huggingface_hub import hf_hub_download
 from pybloomfilter import BloomFilter
 import unicodedata
 from typing import Optional
-from huggingface_hub import hf_hub_download
+from huggingface_hub import hf_hub_download, list_repo_files
 from pybloomfilter import BloomFilter
 
 from glebs_package.langident.langident_pipeline import LangIdentPipeline
@@ -20,36 +20,38 @@ def get_bloomfilter(model_id: str, filename: str):
 
 class OCRQAPipeline:   
     def __init__(self):
-        pass
+        self.SUPPORTED_LANGUAGES = self.get_supported_languages()
 
-    def __call__(self, text, language = None, version = "1.0.6", diagnostics = False):
+    def get_supported_languages(self) -> set:
+        repo_files = list_repo_files("impresso-project/OCR-quality-assessment-unigram")
+        languages = {file.split('-')[-1].split('.')[0] for file in repo_files if file.startswith("ocrqa-wp_v")}
+        return languages
+
+    def __call__(self, text, language=None, version=None, diagnostics=False, bloom_filter=False):
         self.language = language
         self.version = version
         self.diagnostics = diagnostics
+        self.bloom_filter = bloom_filter
         
-        if self.language == None:
-            # exec(open(hf_hub_download("Maslionok/sudo_pipelines", "floret_language_recognition.py")).read())
-
+        if self.language is None:
             lang_model = LangIdentPipeline()
-
-            self.language = lang_model(text)
+            lang_result = lang_model(text)
+            self.language = lang_result["language"]
 
         if self.language not in self.SUPPORTED_LANGUAGES:
-          raise ValueError(f"Unsupported language: {self.language}")
-        
+            raise ValueError(f"Unsupported language: {self.language}")
+
+        if self.version is None:
+            repo_files = list_repo_files("impresso-project/OCR-quality-assessment-unigram")
+            versions = [file.split('-')[1][1:] for file in repo_files if file.startswith(f"ocrqa-wp_v") and file.endswith(f"-{self.language}.bloom")]
+            self.version = max(versions, key=lambda v: list(map(int, v.split('.'))))
+
         bf = get_bloomfilter("impresso-project/OCR-quality-assessment-unigram", f"ocrqa-wp_v{self.version}-{self.language}.bloom")
 
         output = self.filter_text(text, bf)
 
         return output
-    
-    # Add all supported languages here
-    SUPPORTED_LANGUAGES = {
-        "fr", 
-        "de"
-    }
 
-    
     # Define normalization table
     QUOTES_PUNCT = "„•<>!\"#%&'’"
     ASCII_PUNCT = "()*,./:;?"
@@ -98,8 +100,17 @@ class OCRQAPipeline:
                     print(f"'{token}' is NOT in the bloom filter.")
 
 
-    def filter_text(self, DE_TEXT: str, bloom_filter: BloomFilter):
+    def filter_text(self, DE_TEXT: str, bloom_filter: BloomFilter) -> Dict[str, Union[str, float, Dict[str, Union[List[str], str]]]]:
+        """
+        Filter the text using the bloom filter and return the score and diagnostics if enabled.
 
+        Args:
+            DE_TEXT (str): The input text to filter.
+            bloom_filter (BloomFilter): The bloom filter to use for filtering.
+
+        Returns:
+            Dict[str, Union[str, float, Dict[str, Union[List[str], str]]]]: The output containing language, score, and optionally diagnostics.
+        """
         knowns = set()
         unknowns = set()
 
@@ -110,25 +121,23 @@ class OCRQAPipeline:
         # Check tokens against the bloom filter
         for token in tokens:
             if token in bloom_filter:
-                # if self.diagnostics:
-                #     print(f"'{token}' is in the bloom filter.")
                 knowns.add(token)
             else:
-                # if self.diagnostics:
-                #     print(f"'{token}' is NOT in the bloom filter.")
                 unknowns.add(token)
-        
-        # result = {"knowns": knowns, "unknowns": unknowns}
-
-        bloom_filter = f"ocrqa-wp_v{self.version}-{self.language}.bloom"
 
         # Compute the score
         score = len(knowns) / (len(knowns) + len(unknowns)) if (len(knowns) + len(unknowns)) > 0 else 0
         score = round(score, 1)
-        
-        output = ({"language": self.language, "score": score})
-        
+
+        output = {"language": self.language, "score": score}
+
         if self.diagnostics:
-            output = ({"language": self.language, "score": score, "diagnostics": {"known_tokens": list(knowns), "unknowns_tokens": list(unknowns), "bloom_filter": bloom_filter}})
+            output["diagnostics"] = {
+                "known_tokens": list(knowns),
+                "unknowns_tokens": list(unknowns),
+                "bloom_filter": f"ocrqa-wp_v{self.version}-{self.language}.bloom"
+            }
+        elif self.bloom_filter:
+            output["bloom_filter"] = f"ocrqa-wp_v{self.version}-{self.language}.bloom"
 
         return output
