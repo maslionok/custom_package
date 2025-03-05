@@ -129,6 +129,6 @@ class OCRQAPipeline:
         output = ({"language": self.language, "score": score})
         
         if self.diagnostics:
-            output = ({"language": self.language, "score": score, "diagnostics": {"known_tokens": len(knowns), "unknowns_tokens": len(unknowns), "bloom_filter": bloom_filter}})
+            output = ({"language": self.language, "score": score, "diagnostics": {"known_tokens": list(knowns), "unknowns_tokens": list(unknowns), "bloom_filter": bloom_filter}})
 
         return output
