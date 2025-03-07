@@ -10,7 +10,7 @@ class LangIdentPipeline:
     A pipeline for language identification using a pre-trained floret model.
     """
     
-    def __init__(self, model_name: str = "floret_model.bin", repo_id: str = "Maslionok/sudo_pipelines", revision: str = "main"):
+    def __init__(self, model_name: str = "LID-40-3-2000000-1-4.bin", repo_id: str = "impresso-project/impresso-floret-langident", revision: str = "main"):
         """
         Initialize the LangIdentPipeline with the specified model.
 
@@ -37,10 +37,13 @@ class LangIdentPipeline:
         """
         output = self.model.predict(text, k=300 if diagnostics else 1)
         language, value = output
-        language = language[0].replace("__label__", "")
+  
+        value = [round(num, 3) for num in value]
+        
         score = value[0]
+    
 
-        result = {"language": language, "score": score}
+        result = {"language": language[0].replace("__label__", ""), "score": score}
 
         if diagnostics:
             language_dist = [{"language": lang.replace("__label__", ""), "score": val} for lang, val in zip(language, value)]

@@ -9,6 +9,7 @@ import unicodedata
 from typing import Optional
 from huggingface_hub import hf_hub_download, list_repo_files
 from pybloomfilter import BloomFilter
+import re
 
 from glebs_package.langident.langident_pipeline import LangIdentPipeline
 
@@ -25,13 +26,15 @@ class OCRQAPipeline:
     def get_supported_languages(self) -> set:
         repo_files = list_repo_files("impresso-project/OCR-quality-assessment-unigram")
         languages = {file.split('-')[-1].split('.')[0] for file in repo_files if file.startswith("ocrqa-wp_v")}
+        
         return languages
 
-    def __call__(self, text, language=None, version=None, diagnostics=False, bloom_filter=False):
+    def __call__(self, text, language=None, version=None, diagnostics=False, bloom_filter=False, supported_languages=False):
         self.language = language
         self.version = version
         self.diagnostics = diagnostics
         self.bloom_filter = bloom_filter
+        self.supported_languages = supported_languages
         
         if self.language is None:
             lang_model = LangIdentPipeline()
@@ -43,12 +46,22 @@ class OCRQAPipeline:
 
         if self.version is None:
             repo_files = list_repo_files("impresso-project/OCR-quality-assessment-unigram")
-            versions = [file.split('-')[1][1:] for file in repo_files if file.startswith(f"ocrqa-wp_v") and file.endswith(f"-{self.language}.bloom")]
+            versions = [
+                re.search(r"_v(\d+\.\d+\.\d+)", file).group(1)
+                for file in repo_files
+                if file.startswith("ocrqa-wp_v") and file.endswith(f"-{self.language}.bloom")
+            ]
+            
+            # versions = [v for v in versions if all(part.isdigit() for part in v.split('.'))]
             self.version = max(versions, key=lambda v: list(map(int, v.split('.'))))
+            
 
         bf = get_bloomfilter("impresso-project/OCR-quality-assessment-unigram", f"ocrqa-wp_v{self.version}-{self.language}.bloom")
 
         output = self.filter_text(text, bf)
+
+        if self.supported_languages:
+            output["supported_languages"] = list(self.SUPPORTED_LANGUAGES)
 
         return output
 
