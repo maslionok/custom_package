@@ -29,11 +29,11 @@ class OCRQAPipeline:
         
         return languages
 
-    def __call__(self, text, language=None, version=None, diagnostics=False, bloom_filter=False, supported_languages=False):
+    def __call__(self, text, language=None, version=None, diagnostics=False, model_id=False, supported_languages=False):
         self.language = language
         self.version = version
         self.diagnostics = diagnostics
-        self.bloom_filter = bloom_filter
+        self.model_id = model_id
         self.supported_languages = supported_languages
         
         if self.language is None:
@@ -150,7 +150,7 @@ class OCRQAPipeline:
                 "unknowns_tokens": list(unknowns),
                 "bloom_filter": f"ocrqa-wp_v{self.version}-{self.language}.bloom"
             }
-        elif self.bloom_filter:
+        elif self.model_id:
             output["bloom_filter"] = f"ocrqa-wp_v{self.version}-{self.language}.bloom"
 
         return output
